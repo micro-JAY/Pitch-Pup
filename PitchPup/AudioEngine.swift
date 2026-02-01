@@ -5,6 +5,7 @@
 
 import AVFoundation
 import AudioKit
+import SoundpipeAudioKit
 
 @MainActor
 final class AudioCaptureEngine {
@@ -21,6 +22,23 @@ final class AudioCaptureEngine {
 
     var isRunning: Bool {
         engine?.avEngine.isRunning ?? false
+    }
+
+    private var wasRunningBeforePause: Bool = false
+
+    func pause() {
+        wasRunningBeforePause = isRunning
+        if isRunning {
+            pitchTap?.stop()
+            engine?.pause()
+        }
+    }
+
+    func resume() async throws {
+        if wasRunningBeforePause && !isRunning {
+            try engine?.start()
+            pitchTap?.start()
+        }
     }
 
     init(tunerState: TunerState) {
@@ -156,6 +174,40 @@ final class AudioCaptureEngine {
         // Set default device if none selected
         if tunerState.selectedDeviceID == nil, let first = tunerState.availableDevices.first {
             tunerState.selectedDeviceID = first.id
+        }
+
+        // Check if currently selected device is still available
+        if let selectedID = tunerState.selectedDeviceID,
+           !tunerState.availableDevices.contains(where: { $0.id == selectedID }) {
+            // Device was disconnected, select first available
+            tunerState.selectedDeviceID = tunerState.availableDevices.first?.id
+
+            // If we were running, we need to restart with new device
+            if isRunning {
+                stop()
+                Task {
+                    try? await start()
+                }
+            }
+        }
+    }
+
+    func startDeviceObservation() {
+        // Observe device connection changes
+        NotificationCenter.default.addObserver(
+            forName: AVCaptureDevice.wasConnectedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshDevices()
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: AVCaptureDevice.wasDisconnectedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshDevices()
         }
     }
 }

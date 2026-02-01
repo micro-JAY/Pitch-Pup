@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct WaveformTunerView: View {
     @Environment(TunerState.self) private var tunerState
