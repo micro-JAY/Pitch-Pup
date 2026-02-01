@@ -2,16 +2,22 @@
 //  PitchPupApp.swift
 //  PitchPup
 //
-//  Created by Jana Jennings on 2026/02/01.
-//
 
 import SwiftUI
 
 @main
 struct PitchPupApp: App {
+    @State private var tunerState = TunerState()
+
     var body: some Scene {
-        WindowGroup {
+        MenuBarExtra {
             ContentView()
+                .environment(tunerState)
+        } label: {
+            Image(systemName: tunerState.isOn ? "tuningfork" : "tuningfork")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tunerState.isOn ? .green : .secondary)
         }
+        .menuBarExtraStyle(.window)
     }
 }
