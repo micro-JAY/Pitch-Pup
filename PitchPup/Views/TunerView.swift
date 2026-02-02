@@ -26,24 +26,11 @@ struct TunerView: View {
 
             // Visualization area
             visualizationView
-                .contentShape(Rectangle())
-                .onTapGesture(count: 1) { } // Absorb single taps
-                .contextMenu {
-                    Button {
-                        toggleViewMode()
-                    } label: {
-                        Label(
-                            tunerState.viewMode == .arc ? "Switch to Waveform" : "Switch to Arc",
-                            systemImage: tunerState.viewMode == .arc ? "waveform" : "dial.medium"
-                        )
-                    }
-                }
         }
         .frame(width: 320, height: tunerState.viewMode == .arc ? 240 : 260)
         .background(backgroundColor)
         .onAppear {
             audioEngine = AudioCaptureEngine(tunerState: tunerState)
-            audioEngine?.refreshDevices()
         }
     }
 
@@ -72,21 +59,6 @@ struct TunerView: View {
 
             Spacer()
 
-            // Device picker
-            if !tunerState.availableDevices.isEmpty {
-                Picker("", selection: Binding(
-                    get: { tunerState.selectedDeviceID ?? "" },
-                    set: { tunerState.selectedDeviceID = $0 }
-                )) {
-                    ForEach(tunerState.availableDevices) { device in
-                        Text(device.name)
-                            .tag(device.id)
-                    }
-                }
-                .pickerStyle(.menu)
-                .frame(maxWidth: 140)
-            }
-
             // Hover mode toggle
             Button {
                 tunerState.hoverModeEnabled.toggle()
@@ -96,6 +68,32 @@ struct TunerView: View {
             }
             .buttonStyle(.plain)
             .help("Keep window on top")
+
+            // Settings menu (view mode + quit)
+            Menu {
+                // View mode toggle
+                Button {
+                    toggleViewMode()
+                } label: {
+                    Label(
+                        tunerState.viewMode == .arc ? "Waveform View" : "Arc View",
+                        systemImage: tunerState.viewMode == .arc ? "waveform" : "dial.medium"
+                    )
+                }
+
+                Divider()
+
+                // Quit button
+                Button("Quit PitchPup") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .keyboardShortcut("q")
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundColor(.secondary)
+            }
+            .menuStyle(.borderlessButton)
+            .frame(width: 20)
         }
     }
 
@@ -103,20 +101,20 @@ struct TunerView: View {
 
     @ViewBuilder
     private var visualizationView: some View {
-        switch tunerState.viewMode {
-        case .arc:
-            ArcTunerView()
-                .transition(.opacity)
-        case .waveform:
-            WaveformTunerView()
-                .transition(.opacity)
+        ZStack {
+            if tunerState.viewMode == .arc {
+                ArcTunerView()
+                    .transition(.opacity)
+            } else {
+                WaveformTunerView()
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeInOut(duration: 0.25), value: tunerState.viewMode)
     }
 
     private func toggleViewMode() {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            tunerState.viewMode = tunerState.viewMode == .arc ? .waveform : .arc
-        }
+        tunerState.viewMode = tunerState.viewMode == .arc ? .waveform : .arc
     }
 }
 
@@ -159,11 +157,6 @@ struct PermissionDeniedView: View {
     state.octave = 4
     state.cents = 0
     state.amplitude = 0.3
-    state.availableDevices = [
-        AudioInputDevice(id: "1", name: "Built-in Microphone"),
-        AudioInputDevice(id: "2", name: "External Audio Interface")
-    ]
-    state.selectedDeviceID = "1"
 
     return TunerView()
         .environment(state)

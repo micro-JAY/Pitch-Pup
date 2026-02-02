@@ -44,6 +44,7 @@ class HoverPanel: NSPanel {
 class HoverWindowController: NSWindowController {
     private var tunerState: TunerState?
     private var savedPosition: NSPoint?
+    private var isClosingProgrammatically = false
 
     convenience init(tunerState: TunerState) {
         let panel = HoverPanel(contentRect: NSRect(x: 0, y: 0, width: 320, height: 260))
@@ -58,8 +59,8 @@ class HoverWindowController: NSWindowController {
             panel.center()
         }
 
-        // Set up SwiftUI content
-        let contentView = ContentView()
+        // Set up SwiftUI content (mark as hover window so it shows full tuner)
+        let contentView = ContentView(isHoverWindow: true)
             .environment(tunerState)
 
         panel.contentView = NSHostingView(rootView: contentView)
@@ -88,8 +89,11 @@ class HoverWindowController: NSWindowController {
     }
 
     @objc private func windowWillClose(_ notification: Notification) {
-        // Don't disable hover mode when closing - just hide the window
-        // User can reopen via menubar icon
+        // Only update state if user closed the window manually (not programmatically)
+        if !isClosingProgrammatically {
+            tunerState?.hoverModeEnabled = false
+        }
+        isClosingProgrammatically = false
     }
 
     func show() {
@@ -97,7 +101,8 @@ class HoverWindowController: NSWindowController {
     }
 
     func hide() {
-        window?.orderOut(nil)
+        isClosingProgrammatically = true
+        window?.close()
     }
 
     deinit {

@@ -26,8 +26,8 @@ extension TunerState {
             viewMode = mode
         }
 
-        // Load hover mode
-        hoverModeEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.hoverModeEnabled)
+        // Don't load hover mode - always start in normal mode
+        hoverModeEnabled = false
     }
 
     func savePreferences() {

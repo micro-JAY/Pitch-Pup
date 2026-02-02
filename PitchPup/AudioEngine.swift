@@ -5,7 +5,9 @@
 
 import AVFoundation
 import AudioKit
+import AudioKitEX
 import SoundpipeAudioKit
+import CoreAudio
 
 @MainActor
 final class AudioCaptureEngine {
@@ -13,6 +15,7 @@ final class AudioCaptureEngine {
     private var pitchTap: PitchTap?
     private var mic: AudioKit.AudioEngine.InputNode?
     private var mixer: Mixer?
+    private var silentOutput: Fader?
 
     private weak var tunerState: TunerState?
 
@@ -45,6 +48,22 @@ final class AudioCaptureEngine {
         self.tunerState = tunerState
     }
 
+    /// Switch to a different audio input device
+    func switchDevice(to deviceUID: String) async throws {
+        let wasRunning = isRunning
+        if wasRunning {
+            stop()
+        }
+
+        // Update tuner state
+        tunerState?.selectedDeviceID = deviceUID
+
+        // Restart if we were running
+        if wasRunning {
+            try await start()
+        }
+    }
+
     func start() async throws {
         guard let tunerState else { return }
 
@@ -54,6 +73,11 @@ final class AudioCaptureEngine {
         tunerState.microphonePermissionDenied = !granted
 
         guard granted else { return }
+
+        // Set the input device before creating the AudioKit engine
+        if let selectedUID = tunerState.selectedDeviceID {
+            setInputDevice(uid: selectedUID)
+        }
 
         // Set up the audio engine
         engine = AudioKit.AudioEngine()
@@ -72,15 +96,18 @@ final class AudioCaptureEngine {
 
         guard let mixer else { return }
 
-        // Set up pitch detection tap
+        // Set up pitch detection tap on the mixer (at full volume for analysis)
         pitchTap = PitchTap(mixer, bufferSize: 2048) { [weak self] frequencies, amplitudes in
             Task { @MainActor in
                 self?.handlePitchUpdate(frequencies: frequencies, amplitudes: amplitudes)
             }
         }
 
-        // Connect mixer to engine output (muted)
-        engine.output = mixer
+        // Create a silent fader (gain=0) so we don't hear mic playback
+        silentOutput = Fader(mixer, gain: 0)
+
+        // Connect silent fader to engine output
+        engine.output = silentOutput
 
         // Start the engine
         try engine.start()
@@ -91,11 +118,93 @@ final class AudioCaptureEngine {
         tunerState.isOn = true
     }
 
+    /// Set the system default input device to the specified device UID
+    private func setInputDevice(uid: String) {
+        // Find the AudioDeviceID for the given UID
+        var propertySize: UInt32 = 0
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+
+        // Get the size of the device list
+        AudioObjectGetPropertyDataSize(
+            AudioObjectID(kAudioObjectSystemObject),
+            &propertyAddress,
+            0,
+            nil,
+            &propertySize
+        )
+
+        let deviceCount = Int(propertySize) / MemoryLayout<AudioDeviceID>.size
+        var deviceIDs = [AudioDeviceID](repeating: 0, count: deviceCount)
+
+        // Get all device IDs
+        AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &propertyAddress,
+            0,
+            nil,
+            &propertySize,
+            &deviceIDs
+        )
+
+        // Find the device with matching UID
+        for deviceID in deviceIDs {
+            var uidAddress = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyDeviceUID,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+
+            var uidSize = UInt32(MemoryLayout<CFString>.size)
+            var deviceUID: CFString?
+
+            let status = withUnsafeMutablePointer(to: &deviceUID) { ptr in
+                AudioObjectGetPropertyData(deviceID, &uidAddress, 0, nil, &uidSize, ptr)
+            }
+
+            if status == noErr, let deviceUID = deviceUID as String?, deviceUID == uid {
+                // Check if this device has input channels
+                var inputAddress = AudioObjectPropertyAddress(
+                    mSelector: kAudioDevicePropertyStreamConfiguration,
+                    mScope: kAudioDevicePropertyScopeInput,
+                    mElement: kAudioObjectPropertyElementMain
+                )
+
+                var inputSize: UInt32 = 0
+                AudioObjectGetPropertyDataSize(deviceID, &inputAddress, 0, nil, &inputSize)
+
+                if inputSize > 0 {
+                    // Set as default input device
+                    var defaultAddress = AudioObjectPropertyAddress(
+                        mSelector: kAudioHardwarePropertyDefaultInputDevice,
+                        mScope: kAudioObjectPropertyScopeGlobal,
+                        mElement: kAudioObjectPropertyElementMain
+                    )
+
+                    var mutableDeviceID = deviceID
+                    AudioObjectSetPropertyData(
+                        AudioObjectID(kAudioObjectSystemObject),
+                        &defaultAddress,
+                        0,
+                        nil,
+                        UInt32(MemoryLayout<AudioDeviceID>.size),
+                        &mutableDeviceID
+                    )
+                }
+                break
+            }
+        }
+    }
+
     func stop() {
         pitchTap?.stop()
         engine?.stop()
 
         pitchTap = nil
+        silentOutput = nil
         mixer = nil
         mic = nil
         engine = nil

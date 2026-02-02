@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FB1A9B6F2F305EE200F886FA /* AudioKitEX in Frameworks */ = {isa = PBXBuildFile; productRef = FB1A9B6E2F305EE200F886FA /* AudioKitEX */; };
+		FB1A9B722F3060DA00F886FA /* KissFFT in Frameworks */ = {isa = PBXBuildFile; productRef = FB1A9B712F3060DA00F886FA /* KissFFT */; };
+		FB1A9B752F3060EC00F886FA /* Tonic in Frameworks */ = {isa = PBXBuildFile; productRef = FB1A9B742F3060EC00F886FA /* Tonic */; };
 		FBE7B23F2F2F3F8700129B4A /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = FBE7B23E2F2F3F8300129B4A /* .gitignore */; };
 		FBE7B2402F2F400000129B4A /* AudioKit in Frameworks */ = {isa = PBXBuildFile; productRef = FBE7B2412F2F400000129B4A /* AudioKit */; };
 		FBE7B2432F2F400100129B4A /* SoundpipeAudioKit in Frameworks */ = {isa = PBXBuildFile; productRef = FBE7B2442F2F400100129B4A /* SoundpipeAudioKit */; };
@@ -59,7 +62,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB1A9B6F2F305EE200F886FA /* AudioKitEX in Frameworks */,
+				FB1A9B722F3060DA00F886FA /* KissFFT in Frameworks */,
 				FBE7B2402F2F400000129B4A /* AudioKit in Frameworks */,
+				FB1A9B752F3060EC00F886FA /* Tonic in Frameworks */,
 				FBE7B2432F2F400100129B4A /* SoundpipeAudioKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -124,6 +130,9 @@
 			packageProductDependencies = (
 				FBE7B2412F2F400000129B4A /* AudioKit */,
 				FBE7B2442F2F400100129B4A /* SoundpipeAudioKit */,
+				FB1A9B6E2F305EE200F886FA /* AudioKitEX */,
+				FB1A9B712F3060DA00F886FA /* KissFFT */,
+				FB1A9B742F3060EC00F886FA /* Tonic */,
 			);
 			productName = PitchPup;
 			productReference = FBE7B2142F2F304800129B4A /* PitchPup.app */;
@@ -210,6 +219,9 @@
 			packageReferences = (
 				FBE7B2422F2F400000129B4A /* XCRemoteSwiftPackageReference "AudioKit" */,
 				FBE7B2452F2F400100129B4A /* XCRemoteSwiftPackageReference "SoundpipeAudioKit" */,
+				FB1A9B6D2F305EE200F886FA /* XCRemoteSwiftPackageReference "AudioKitEX" */,
+				FB1A9B702F3060DA00F886FA /* XCRemoteSwiftPackageReference "KissFFT" */,
+				FB1A9B732F3060EC00F886FA /* XCRemoteSwiftPackageReference "Tonic" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FBE7B2152F2F304800129B4A /* Products */;
@@ -602,6 +614,30 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		FB1A9B6D2F305EE200F886FA /* XCRemoteSwiftPackageReference "AudioKitEX" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AudioKit/AudioKitEX.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.6.2;
+			};
+		};
+		FB1A9B702F3060DA00F886FA /* XCRemoteSwiftPackageReference "KissFFT" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AudioKit/KissFFT.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		FB1A9B732F3060EC00F886FA /* XCRemoteSwiftPackageReference "Tonic" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AudioKit/Tonic.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.1.0;
+			};
+		};
 		FBE7B2422F2F400000129B4A /* XCRemoteSwiftPackageReference "AudioKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AudioKit/AudioKit.git";
@@ -621,6 +657,21 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		FB1A9B6E2F305EE200F886FA /* AudioKitEX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB1A9B6D2F305EE200F886FA /* XCRemoteSwiftPackageReference "AudioKitEX" */;
+			productName = AudioKitEX;
+		};
+		FB1A9B712F3060DA00F886FA /* KissFFT */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB1A9B702F3060DA00F886FA /* XCRemoteSwiftPackageReference "KissFFT" */;
+			productName = KissFFT;
+		};
+		FB1A9B742F3060EC00F886FA /* Tonic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB1A9B732F3060EC00F886FA /* XCRemoteSwiftPackageReference "Tonic" */;
+			productName = Tonic;
+		};
 		FBE7B2412F2F400000129B4A /* AudioKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FBE7B2422F2F400000129B4A /* XCRemoteSwiftPackageReference "AudioKit" */;

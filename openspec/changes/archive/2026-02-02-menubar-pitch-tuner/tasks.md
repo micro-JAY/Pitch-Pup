@@ -73,12 +73,40 @@
 - [x] 10.4 Show appropriate UI when no pitch detected (silence/noise)
 - [x] 10.5 Update menubar icon to reflect active/inactive state
 
-## 11. Verification
+## 11. Bug Fixes (from testing)
 
-- [ ] 11.1 Test with built-in microphone and external audio interface
-- [ ] 11.2 Verify pitch accuracy with tuning fork or known frequency
-- [ ] 11.3 Test hover mode stays above other windows
-- [ ] 11.4 Verify all preferences persist across app restart
-- [ ] 11.5 Test microphone permission flow (grant, deny, revoke)
+- [x] 11.1 Fix audio input device selection not switching devices (added Core Audio device switching)
+- [x] 11.2 Fix hover mode not keeping window above others (wired up AppDelegate + HoverWindowController)
+- [x] 11.3 Add cents display below the arc visualization
+- [x] 11.4 Add settings menu with view mode toggle and quit button
+- [x] 11.5 Remove right-click context menu from visualization (moved to settings menu)
 
-> Note: Group 11 tasks are manual verification tests to be run after building the app in Xcode.
+## 12. Bug Fixes Round 2 (from testing)
+
+- [x] 12.1 Remove audio input device selector (use system default only)
+- [x] 12.2 Fix hover mode toggle - disabling pin should close hover window
+- [x] 12.3 Fix view mode switching - ensure seamless transition while running
+- [x] 12.4 Change cent symbol from "¢" to "ct"
+- [x] 12.5 Fix arc labels: -50ct and +50ct at arc tips, 0ct at top center peak
+- [x] 12.6 Fix ball indicator to follow the arc path correctly
+- [x] 12.7 Mute audio output (user hearing themselves through mic)
+
+## 13. Bug Fixes Round 3 (from testing)
+
+- [x] 13.1 Fix audio not being analyzed (use Fader with gain=0 after PitchTap, import AudioKitEX)
+- [x] 13.2 Fix hover mode window duplication (show placeholder in popover when hover mode active)
+- [x] 13.3 Remove "0" label from arc
+- [x] 13.4 Rewrite arc using Canvas for precise positioning (ball + labels at arc tips)
+- [x] 13.5 Center note/cents/Hz display vertically
+
+## 14. Verification (Re-test after fixes)
+
+- [x] 14.1 Test pitch detection with default microphone
+- [x] 14.2 Verify pitch accuracy with tuning fork or known frequency
+- [x] 14.3 Test hover mode toggle on/off works correctly (no duplication)
+- [x] 14.4 Test view mode switching while tuner is active
+- [x] 14.5 Verify arc indicator follows arc path correctly
+- [x] 14.6 Confirm no audio playback through speakers
+- [x] 14.7 Verify -50/+50 labels are at arc tips
+
+> All verification tests passed.

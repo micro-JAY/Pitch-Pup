@@ -16,78 +16,54 @@ struct ArcTunerView: View {
     private let backgroundColor = Color(red: 0.08, green: 0.08, blue: 0.1)
     private let inTuneColor = Color(red: 0.4, green: 1.0, blue: 0.6)
 
+    // Formatted cents display
+    private var centsDisplayString: String {
+        guard tunerState.hasValidPitch else { return "-- ct" }
+        let cents = Int(round(tunerState.cents))
+        if cents == 0 {
+            return "0 ct"
+        } else if cents > 0 {
+            return "+\(cents) ct"
+        } else {
+            return "\(cents) ct"
+        }
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
             let height = geometry.size.height
-            let centerX = width / 2
-            let arcRadius = width * 0.42
-            let arcCenterY = height * 0.45
 
             ZStack {
-                // Background
-                backgroundColor
-                    .ignoresSafeArea()
+                backgroundColor.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Arc visualization area
-                    ZStack {
-                        // The deviation arc
-                        ArcShape(startAngle: -160, endAngle: -20)
-                            .stroke(
-                                tunerState.hasValidPitch ? accentColor.opacity(0.4) : accentColor.opacity(0.2),
-                                style: StrokeStyle(lineWidth: 2, lineCap: .round)
-                            )
-                            .frame(width: arcRadius * 2, height: arcRadius)
-                            .position(x: centerX, y: arcCenterY)
+                    // Arc visualization using Canvas for precise positioning
+                    ArcCanvas(
+                        cents: animatedCents,
+                        hasValidPitch: tunerState.hasValidPitch,
+                        isInTune: tunerState.isInTune,
+                        accentColor: accentColor,
+                        inTuneColor: inTuneColor
+                    )
+                    .frame(height: height * 0.48)
 
-                        // Center marker (0)
-                        Text("0")
-                            .font(.system(size: 11, weight: .medium, design: .monospaced))
-                            .foregroundColor(accentColor.opacity(0.8))
-                            .position(x: centerX, y: arcCenterY - arcRadius - 12)
-
-                        // Left marker (-50)
-                        Text("-50")
-                            .font(.system(size: 10, weight: .regular, design: .monospaced))
-                            .foregroundColor(accentColor.opacity(0.6))
-                            .position(x: centerX - arcRadius * 0.85, y: arcCenterY + 8)
-
-                        // Right marker (+50)
-                        Text("+50")
-                            .font(.system(size: 10, weight: .regular, design: .monospaced))
-                            .foregroundColor(accentColor.opacity(0.6))
-                            .position(x: centerX + arcRadius * 0.85, y: arcCenterY + 8)
-
-                        // Ball indicator
-                        if tunerState.hasValidPitch {
-                            BallIndicator(
-                                cents: animatedCents,
-                                arcRadius: arcRadius,
-                                isInTune: tunerState.isInTune,
-                                accentColor: accentColor,
-                                inTuneColor: inTuneColor
-                            )
-                            .position(x: centerX, y: arcCenterY)
-                        }
-                    }
-                    .frame(height: height * 0.55)
-
-                    // Note and frequency display
+                    // Note, cents, and frequency display - centered
                     VStack(spacing: 4) {
-                        HStack(alignment: .firstTextBaseline, spacing: 16) {
-                            // Note name
-                            Text(tunerState.displayNote)
-                                .font(.system(size: 48, weight: .medium, design: .rounded))
-                                .foregroundColor(tunerState.isInTune ? inTuneColor : accentColor)
+                        Text(tunerState.displayNote)
+                            .font(.system(size: 42, weight: .medium, design: .rounded))
+                            .foregroundColor(tunerState.isInTune ? inTuneColor : accentColor)
 
-                            // Frequency
-                            Text(tunerState.displayFrequency)
-                                .font(.system(size: 24, weight: .light, design: .monospaced))
-                                .foregroundColor(accentColor.opacity(0.8))
-                        }
+                        Text(centsDisplayString)
+                            .font(.system(size: 16, weight: .medium, design: .monospaced))
+                            .foregroundColor(tunerState.isInTune ? inTuneColor.opacity(0.9) : accentColor.opacity(0.8))
+
+                        Text(tunerState.displayFrequency)
+                            .font(.system(size: 12, weight: .light, design: .monospaced))
+                            .foregroundColor(accentColor.opacity(0.6))
                     }
-                    .frame(height: height * 0.35)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: height * 0.42)
 
                     Spacer()
                 }
@@ -101,52 +77,95 @@ struct ArcTunerView: View {
     }
 }
 
-// MARK: - Arc Shape
+// MARK: - Arc Canvas
 
-struct ArcShape: Shape {
-    let startAngle: Double
-    let endAngle: Double
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let center = CGPoint(x: rect.midX, y: rect.maxY)
-        let radius = rect.width / 2
-
-        path.addArc(
-            center: center,
-            radius: radius,
-            startAngle: .degrees(startAngle),
-            endAngle: .degrees(endAngle),
-            clockwise: false
-        )
-
-        return path
-    }
-}
-
-// MARK: - Ball Indicator
-
-struct BallIndicator: View {
+struct ArcCanvas: View {
     let cents: Double
-    let arcRadius: Double
+    let hasValidPitch: Bool
     let isInTune: Bool
     let accentColor: Color
     let inTuneColor: Color
 
+    // Arc configuration
+    private let startAngle: Double = -150  // -50 cents (left)
+    private let endAngle: Double = -30     // +50 cents (right)
+    // -90° is top center (0 cents)
+
     var body: some View {
-        // Map cents (-50 to +50) to angle (-160 to -20 degrees)
-        let normalizedCents = max(-50, min(50, cents))
-        let angle = -160 + (normalizedCents + 50) * (140.0 / 100.0)
-        let radians = angle * .pi / 180
+        Canvas { context, size in
+            let width = size.width
+            let height = size.height
+            let centerX = width / 2
+            let arcRadius = width * 0.35
 
-        let x = cos(radians) * arcRadius
-        let y = sin(radians) * arcRadius
+            // Arc center is below the visible canvas - arc curves upward into view
+            let arcCenterY = height * 1.5
 
-        Circle()
-            .fill(isInTune ? inTuneColor : accentColor)
-            .frame(width: 20, height: 20)
-            .shadow(color: (isInTune ? inTuneColor : accentColor).opacity(0.6), radius: 8)
-            .offset(x: x, y: y)
+            // Draw the arc
+            var arcPath = Path()
+            arcPath.addArc(
+                center: CGPoint(x: centerX, y: arcCenterY),
+                radius: arcRadius,
+                startAngle: .degrees(startAngle),
+                endAngle: .degrees(endAngle),
+                clockwise: false
+            )
+            context.stroke(
+                arcPath,
+                with: .color(hasValidPitch ? accentColor.opacity(0.5) : accentColor.opacity(0.25)),
+                lineWidth: 2
+            )
+
+            // Calculate arc tip positions for labels
+            let leftAngleRad = startAngle * .pi / 180
+            let leftTipX = centerX + cos(leftAngleRad) * arcRadius
+            let leftTipY = arcCenterY + sin(leftAngleRad) * arcRadius
+
+            let rightAngleRad = endAngle * .pi / 180
+            let rightTipX = centerX + cos(rightAngleRad) * arcRadius
+            let rightTipY = arcCenterY + sin(rightAngleRad) * arcRadius
+
+            // Draw -50 label (left of left tip)
+            let leftLabel = Text("-50")
+                .font(.system(size: 10, weight: .regular, design: .monospaced))
+                .foregroundColor(accentColor.opacity(0.6))
+            context.draw(
+                context.resolve(leftLabel),
+                at: CGPoint(x: leftTipX - 18, y: leftTipY),
+                anchor: .center
+            )
+
+            // Draw +50 label (right of right tip)
+            let rightLabel = Text("+50")
+                .font(.system(size: 10, weight: .regular, design: .monospaced))
+                .foregroundColor(accentColor.opacity(0.6))
+            context.draw(
+                context.resolve(rightLabel),
+                at: CGPoint(x: rightTipX + 18, y: rightTipY),
+                anchor: .center
+            )
+
+            // Draw ball indicator if pitch is valid
+            if hasValidPitch {
+                let normalizedCents = max(-50, min(50, cents))
+                let angleRange = endAngle - startAngle  // 120 degrees
+                let ballAngle = startAngle + (normalizedCents + 50) * (angleRange / 100.0)
+                let ballRadians = ballAngle * .pi / 180
+
+                let ballX = centerX + cos(ballRadians) * arcRadius
+                let ballY = arcCenterY + sin(ballRadians) * arcRadius
+
+                let ballColor = isInTune ? inTuneColor : accentColor
+
+                // Draw glow
+                let glowPath = Path(ellipseIn: CGRect(x: ballX - 12, y: ballY - 12, width: 24, height: 24))
+                context.fill(glowPath, with: .color(ballColor.opacity(0.3)))
+
+                // Draw ball
+                let ballPath = Path(ellipseIn: CGRect(x: ballX - 8, y: ballY - 8, width: 16, height: 16))
+                context.fill(ballPath, with: .color(ballColor))
+            }
+        }
     }
 }
 
@@ -155,10 +174,10 @@ struct BallIndicator: View {
     state.frequency = 294.0
     state.noteName = "D"
     state.octave = 4
-    state.cents = -12
+    state.cents = -25
     state.amplitude = 0.5
 
     return ArcTunerView()
         .environment(state)
-        .frame(width: 280, height: 200)
+        .frame(width: 320, height: 240)
 }
